@@ -98,8 +98,8 @@ jobs:
           env PATH=$PATH:/${{ matrix.mingw_arch }}/bin cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
           env PATH=$PATH:/${{ matrix.mingw_arch }}/bin ninja
           mkdir bin
-          cp windeployqt.exe bin/
-          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin ./bin/windeployqt.exe -d /${{ matrix.mingw_arch }}/bin bin/windeployqt.exe
+          cp mingwdeployqt.exe bin/
+          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin ./bin/mingwdeployqt.exe -d /${{ matrix.mingw_arch }}/bin bin/mingwdeployqt.exe
           cd ..
 
       - name: upload executable artifact
