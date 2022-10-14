@@ -24,7 +24,8 @@ bool isInMinGWBin(const QString &fileName)
 
 bool getImportedDLLs(const QString &fileName, QStringList &res, QTextStream &stream)
 {
-    HANDLE file = CreateFileW(fileName.toStdWString().c_str(), GENERIC_ALL, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    HANDLE file =
+        CreateFileW(fileName.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, nullptr);
     if (INVALID_HANDLE_VALUE == file)
     {
         stream << "Cannot open file " << fileName << ", maybe it's occupied by a running process.\n";
