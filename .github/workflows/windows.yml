@@ -78,6 +78,38 @@ jobs:
             cxx: clang++
             mkspec: win32-clang-g++
             qt_build: qt6
+          - qt_arch: mingw64_qt5-static-gcc
+            mingw_arch: MINGW64 
+            mingw_prefix: mingw-w64-x86_64
+            toolchains: gcc
+            c: gcc
+            cxx: g++
+            mkspec: win32-g++
+            qt_build: qt5-static\
+          - qt_arch: mingw32_qt5-static-gcc
+            mingw_arch: MINGW32
+            mingw_prefix: mingw-w64-i686
+            toolchains: gcc
+            c: gcc
+            cxx: g++
+            mkspec: win32-g++
+            qt_build: qt5-static
+          - qt_arch: mingw64_qt6-static-gcc
+            mingw_arch: MINGW64 
+            mingw_prefix: mingw-w64-x86_64
+            toolchains: gcc
+            c: gcc
+            cxx: g++
+            mkspec: win32-g++
+            qt_build: qt6-static
+          - qt_arch: mingw32_qt6-static-gcc
+            mingw_arch: MINGW32
+            mingw_prefix: mingw-w64-i686
+            toolchains: gcc
+            c: gcc
+            cxx: g++
+            mkspec: win32-g++
+            qt_build: qt6-static
     steps:
       - uses: msys2/setup-msys2@v2
         with:
@@ -95,7 +127,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
+          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin:/${{ matrix.mingw_arch }}/${{ matrix.qt_build }}/bin cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
           env PATH=$PATH:/${{ matrix.mingw_arch }}/bin ninja
           mkdir bin
           cp mingwdeployqt.exe bin/
