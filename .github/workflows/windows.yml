@@ -20,7 +20,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt5
           - qt_arch: mingw32_qt5-gcc
             mingw_arch: MINGW32
@@ -28,7 +27,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt5
           - qt_arch: mingw64_qt5-clang
             mingw_arch: MINGW64 
@@ -36,7 +34,6 @@ jobs:
             toolchains: clang
             c: clang
             cxx: clang++
-            mkspec: win32-clang-g++
             qt_build: qt5
           - qt_arch: mingw32_qt5-clang
             mingw_arch: MINGW32
@@ -44,7 +41,6 @@ jobs:
             toolchains: clang
             c: clang
             cxx: clang++
-            mkspec: win32-clang-g++
             qt_build: qt5
           - qt_arch: mingw64_qt6-gcc
             mingw_arch: MINGW64 
@@ -52,7 +48,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt6
           - qt_arch: mingw64_qt6-clang
             mingw_arch: MINGW64 
@@ -60,7 +55,6 @@ jobs:
             toolchains: clang
             c: clang
             cxx: clang++
-            mkspec: win32-clang-g++
             qt_build: qt6
           - qt_arch: mingw32_qt6-gcc
             mingw_arch: MINGW32
@@ -68,7 +62,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt6
           - qt_arch: mingw32_qt6-clang
             mingw_arch: MINGW32
@@ -76,7 +69,6 @@ jobs:
             toolchains: clang
             c: clang
             cxx: clang++
-            mkspec: win32-clang-g++
             qt_build: qt6
           - qt_arch: mingw64_qt5-static-gcc
             mingw_arch: MINGW64 
@@ -84,15 +76,13 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
-            qt_build: qt5-static\
+            qt_build: qt5-static
           - qt_arch: mingw32_qt5-static-gcc
             mingw_arch: MINGW32
             mingw_prefix: mingw-w64-i686
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt5-static
           - qt_arch: mingw64_qt6-static-gcc
             mingw_arch: MINGW64 
@@ -100,7 +90,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt6-static
           - qt_arch: mingw32_qt6-static-gcc
             mingw_arch: MINGW32
@@ -108,7 +97,6 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-            mkspec: win32-g++
             qt_build: qt6-static
     steps:
       - uses: msys2/setup-msys2@v2
