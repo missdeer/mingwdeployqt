@@ -95,6 +95,31 @@ void getImportedDLLsRecursive(const QString &filename, QStringList &dlls, QTextS
     }
 }
 
+bool isQt6(const QStringList &dlls)
+{
+    for (const auto &dll : dlls)
+    {
+        if (dll.compare("Qt6Core.dll", Qt::CaseInsensitive) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+QString windeployqtPath(bool qt6)
+{
+    if (qt6)
+    {
+        auto windeployqt6 = expandMinGWBinPath(QStringLiteral("windeployqt-qt6.exe"));
+        if (QFile::exists(windeployqt6))
+        {
+            return windeployqt6;
+        }
+    }
+    return expandMinGWBinPath(QStringLiteral("windeployqt.exe"));
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication   app(argc, argv);
@@ -161,8 +186,9 @@ int main(int argc, char *argv[])
                 stream << "\t" << dll << " failed\n";
             }
         }
+        auto windeployqt = windeployqtPath(isQt6(dlls));
         QProcess process;
-        process.start(expandMinGWBinPath(QStringLiteral("windeployqt.exe")), QStringList() << arg);
+        process.start(windeployqt, QStringList() << arg);
         process.waitForFinished();
     }
 
