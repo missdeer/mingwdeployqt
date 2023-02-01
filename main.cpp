@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     parser.addVersionOption();
 
     QCommandLineOption mingwBinDir(QStringList() << QStringLiteral("d") << QStringLiteral("mingw-directory"),
-                                   QCoreApplication::translate("mingwdeployqt", "Specify MinGW bin directory path."),
+                                   QCoreApplication::translate("mingwdeployqt", "Specify MinGW bin directory path. Leave blank to use the directory where mingwdeployqt.exe put."),
                                    QStringLiteral("directory-path"));
     parser.addOption(mingwBinDir);
 
