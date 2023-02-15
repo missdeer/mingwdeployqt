@@ -142,12 +142,16 @@ jobs:
           path: build\bin
           name: mingwdeployqt-${{ matrix.qt_arch }}
 
+      - name: Compress release
+        if: startsWith(github.event.ref, 'refs/tags/')
+        run: powershell Compress-Archive build\bin mingwdeployqt-${{ matrix.qt_arch }}.zip
+        
       - name: uploadRelease
         if: startsWith(github.event.ref, 'refs/tags/')
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GH_TOKEN }}
-          file: build\bin
-          asset_name: mingwdeployqt-${{ matrix.qt_arch }}
+          file: mingwdeployqt-${{ matrix.qt_arch }}.zip
+          asset_name: mingwdeployqt-${{ matrix.qt_arch }}.zip
           tag: ${{ github.ref }}
           overwrite: true
