@@ -141,3 +141,13 @@ jobs:
         with:
           path: build\bin
           name: mingwdeployqt-${{ matrix.qt_arch }}
+
+      - name: uploadRelease
+        if: startsWith(github.event.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GH_TOKEN }}
+          file: mingwdeployqt-${{ matrix.qt_arch }}.zip
+          asset_name: mingwdeployqt-${{ matrix.qt_arch }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
