@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - qt_arch: mingw64_qt5-ucrt64-gcc
+          - qt_arch: mingw64_qt5-ucrt-gcc
             mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt64-x86_64
+            mingw_prefix: mingw-w64-ucrt-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
@@ -49,9 +49,9 @@ jobs:
             c: clang
             cxx: clang++
             qt_build: qt5
-          - qt_arch: mingw64_qt6-ucrt64-gcc
+          - qt_arch: mingw64_qt6-ucrt-gcc
             mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt64-x86_64
+            mingw_prefix: mingw-w64-ucrt-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
@@ -84,9 +84,9 @@ jobs:
             c: clang
             cxx: clang++
             qt_build: qt6
-          - qt_arch: mingw64_qt5-static-ucrt64-gcc
+          - qt_arch: mingw64_qt5-static-ucrt-gcc
             mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt64-x86_64
+            mingw_prefix: mingw-w64-ucrt-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
@@ -105,9 +105,9 @@ jobs:
             c: gcc
             cxx: g++
             qt_build: qt5-static
-          - qt_arch: mingw64_qt6-static-ucrt64-gcc
+          - qt_arch: mingw64_qt6-static-ucrt-gcc
             mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt64-x86_64
+            mingw_prefix: mingw-w64-ucrt-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
