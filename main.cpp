@@ -31,7 +31,7 @@ bool isInMinGWBin(const std::string &fileName)
     return fs::exists(filePath);
 }
 
-bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res, std::ostream &stream)
+bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res)
 {
     HANDLE file = CreateFileW(std::wstring(fileName.begin(), fileName.end()).c_str(),
                               GENERIC_READ,
@@ -42,7 +42,7 @@ bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res,
                               nullptr);
     if (INVALID_HANDLE_VALUE == file)
     {
-        stream << "Cannot open file " << fileName << ", maybe it's occupied by a running process.\n";
+        std::cout << "Cannot open file " << fileName << ", maybe it's occupied by a running process.\n";
         return false;
     }
 
@@ -50,7 +50,7 @@ bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res,
     LPVOID fileData = HeapAlloc(GetProcessHeap(), 0, fileSize);
     if (fileData == nullptr)
     {
-        stream << "Memory allocation failed for reading file.\n";
+        std::cout << "Memory allocation failed for reading file.\n";
         CloseHandle(file);
         return false;
     }
@@ -58,7 +58,7 @@ bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res,
     DWORD bytesRead = 0;
     if (!ReadFile(file, fileData, fileSize, &bytesRead, nullptr) || bytesRead != fileSize)
     {
-        stream << "Read error: " << fileSize << " bytes expected, but got " << bytesRead << " bytes\n";
+        std::cout << "Read error: " << fileSize << " bytes expected, but got " << bytesRead << " bytes\n";
         HeapFree(GetProcessHeap(), 0, fileData);
         CloseHandle(file);
         return false;
@@ -83,7 +83,7 @@ bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res,
 
     if (importSection == nullptr)
     {
-        stream << "No import section found.\n";
+        std::cout << "No import section found.\n";
         HeapFree(GetProcessHeap(), 0, fileData);
         CloseHandle(file);
         return false;
@@ -106,10 +106,10 @@ bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res,
     return true;
 }
 
-void getImportedDLLsRecursive(const std::string &filename, std::vector<std::string> &dlls, std::ostream &stream)
+void getImportedDLLsRecursive(const std::string &filename, std::vector<std::string> &dlls)
 {
     std::vector<std::string> res;
-    getImportedDLLs(filename, res, stream);
+    getImportedDLLs(filename, res);
     for (const auto &dll : res)
     {
         auto exists =
@@ -117,7 +117,7 @@ void getImportedDLLsRecursive(const std::string &filename, std::vector<std::stri
         if (!exists)
         {
             dlls.push_back(dll);
-            getImportedDLLsRecursive(expandMinGWBinPath(dll), dlls, stream);
+            getImportedDLLsRecursive(expandMinGWBinPath(dll), dlls);
         }
     }
 }
@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
         }
 
         std::vector<std::string> dlls;
-        getImportedDLLsRecursive(arg, dlls, std::cout);
+        getImportedDLLsRecursive(arg, dlls);
         if (dlls.empty())
         {
             std::cout << "No dlls found in " << arg << ".\n";
