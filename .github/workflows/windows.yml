@@ -14,138 +14,42 @@ jobs:
     strategy:
       matrix:
         include:
-          - qt_arch: mingw64_qt5-ucrt-gcc
+          - qt_arch: mingw64-ucrt-gcc
             mingw_arch: UCRT64 
             mingw_prefix: mingw-w64-ucrt-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
-            qt_build: qt5
-          - qt_arch: mingw64_qt5-gcc
+          - qt_arch: mingw64-gcc
             mingw_arch: MINGW64 
             mingw_prefix: mingw-w64-x86_64
             toolchains: gcc
             c: gcc
             cxx: g++
-            qt_build: qt5
-          - qt_arch: mingw32_qt5-gcc
+          - qt_arch: mingw32-gcc
             mingw_arch: MINGW32
             mingw_prefix: mingw-w64-i686
             toolchains: gcc
             c: gcc
             cxx: g++
-            qt_build: qt5
-          - qt_arch: clang64_qt5-clang
+          - qt_arch: clang64-clang
             mingw_arch: CLANG64 
             mingw_prefix: mingw-w64-clang-x86_64
             toolchains: clang
             c: clang
             cxx: clang++
-            qt_build: qt5
-          - qt_arch: clang32_qt5-clang
+          - qt_arch: clang32-clang
             mingw_arch: CLANG32
             mingw_prefix: mingw-w64-clang-i686
             toolchains: clang
             c: clang
             cxx: clang++
-            qt_build: qt5
-          - qt_arch: mingw64_qt6-ucrt-gcc
-            mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt6
-          - qt_arch: mingw64_qt6-gcc
-            mingw_arch: MINGW64 
-            mingw_prefix: mingw-w64-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt6
-          - qt_arch: clang64_qt6-clang
-            mingw_arch: CLANG64 
-            mingw_prefix: mingw-w64-clang-x86_64
-            toolchains: clang
-            c: clang
-            cxx: clang++
-            qt_build: qt6
-          - qt_arch: mingw32_qt6-gcc
-            mingw_arch: MINGW32
-            mingw_prefix: mingw-w64-i686
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt6
-          - qt_arch: clang32_qt6-clang
-            mingw_arch: clang32
-            mingw_prefix: mingw-w64-clang-i686
-            toolchains: clang
-            c: clang
-            cxx: clang++
-            qt_build: qt6
-          - qt_arch: mingw64_qt5-static-ucrt-gcc
-            mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt5-static
-          - qt_arch: mingw64_qt5-static-gcc
-            mingw_arch: MINGW64 
-            mingw_prefix: mingw-w64-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt5-static
-          - qt_arch: mingw32_qt5-static-gcc
-            mingw_arch: MINGW32
-            mingw_prefix: mingw-w64-i686
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt5-static
-          - qt_arch: mingw64_qt6-static-ucrt-gcc
-            mingw_arch: UCRT64 
-            mingw_prefix: mingw-w64-ucrt-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt6-static
-          - qt_arch: mingw64_qt6-static-gcc
-            mingw_arch: MINGW64 
-            mingw_prefix: mingw-w64-x86_64
-            toolchains: gcc
-            c: gcc
-            cxx: g++
-            qt_build: qt6-static
-          - qt_arch: clang64_qt5-static-clang
-            mingw_arch: CLANG64 
-            mingw_prefix: mingw-w64-clang-x86_64
-            toolchains: clang
-            c: clang
-            cxx: clang++
-            qt_build: qt5-static
-          - qt_arch: clang32_qt5-static-clang
-            mingw_arch: CLANG32
-            mingw_prefix: mingw-w64-clang-i686
-            toolchains: clang
-            c: clang
-            cxx: clang++
-            qt_build: qt5-static
-          - qt_arch: clang64_qt6-static-clang
-            mingw_arch: CLANG64 
-            mingw_prefix: mingw-w64-clang-x86_64
-            toolchains: clang
-            c: clang
-            cxx: clang++
-            qt_build: qt6-static
     steps:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
           msystem: ${{ matrix.mingw_arch }}
-          install: zip make git ${{ matrix.mingw_prefix }}-${{ matrix.toolchains }} ${{ matrix.mingw_prefix }}-make ${{ matrix.mingw_prefix }}-cmake ${{ matrix.mingw_prefix }}-${{ matrix.qt_build }} ${{ matrix.mingw_prefix }}-openssl ${{ matrix.mingw_prefix }}-zstd
+          install: zip make git ${{ matrix.mingw_prefix }}-${{ matrix.toolchains }} ${{ matrix.mingw_prefix }}-make ${{ matrix.mingw_prefix }}-cmake ${{ matrix.mingw_prefix }}-boost ${{ matrix.mingw_prefix }}-openssl ${{ matrix.mingw_prefix }}-zstd
           
       - uses: actions/checkout@v2
         with:
@@ -157,7 +61,7 @@ jobs:
         run: |
           mkdir build
           cd build
-          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin:/${{ matrix.mingw_arch }}/${{ matrix.qt_build }}/bin cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=${{ matrix.c }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
+          env PATH=$PATH:/${{ matrix.mingw_arch }}/bin cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=${{ matrix.c }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -G Ninja ..
           env PATH=$PATH:/${{ matrix.mingw_arch }}/bin ninja
           mkdir bin
           cp mingwdeployqt.exe bin/

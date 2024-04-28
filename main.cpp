@@ -1,31 +1,45 @@
 #include <Windows.h>
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <boost/program_options.hpp>
 
-#include <QCommandLineParser>
-#include <QCoreApplication>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QProcess>
-#include <QTextStream>
+namespace fs = std::filesystem;
+namespace po = boost::program_options;
 
-static QString mingwBinPath;
+static std::string mingwBinPath;
 
-QString expandMinGWBinPath(const QString &fileName)
+bool caseInsensitiveCompare(const std::string &str1, const std::string &str2)
 {
-    return QDir(mingwBinPath).absoluteFilePath(fileName);
+    return std::equal(str1.begin(), str1.end(), str2.begin(), str2.end(), [](char a, char b) { return std::tolower(a) == std::tolower(b); });
 }
 
-bool isInMinGWBin(const QString &fileName)
+std::string expandMinGWBinPath(const std::string &fileName)
 {
-    return QFile::exists(expandMinGWBinPath(fileName));
+    return mingwBinPath + "\\" + fileName;
 }
 
-bool getImportedDLLs(const QString &fileName, QStringList &res, QTextStream &stream)
+bool isInMinGWBin(const std::string &fileName)
 {
-    HANDLE file =
-        CreateFileW(fileName.toStdWString().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, nullptr);
+    fs::path filePath = expandMinGWBinPath(fileName);
+    return fs::exists(filePath);
+}
+
+bool getImportedDLLs(const std::string &fileName, std::vector<std::string> &res, std::ostream &stream)
+{
+    HANDLE file = CreateFileW(std::wstring(fileName.begin(), fileName.end()).c_str(),
+                              GENERIC_READ,
+                              FILE_SHARE_READ,
+                              nullptr,
+                              OPEN_EXISTING,
+                              FILE_ATTRIBUTE_READONLY,
+                              nullptr);
     if (INVALID_HANDLE_VALUE == file)
     {
         stream << "Cannot open file " << fileName << ", maybe it's occupied by a running process.\n";
@@ -34,25 +48,28 @@ bool getImportedDLLs(const QString &fileName, QStringList &res, QTextStream &str
 
     DWORD  fileSize = GetFileSize(file, nullptr);
     LPVOID fileData = HeapAlloc(GetProcessHeap(), 0, fileSize);
-
-    DWORD bytesRead = 0;
-    ReadFile(file, fileData, fileSize, &bytesRead, nullptr);
-    CloseHandle(file);
-    if (bytesRead != fileSize)
+    if (fileData == nullptr)
     {
-        stream << "Read error: " << fileSize << " is expected, but got " << bytesRead << " bytes\n";
-        HeapFree(GetProcessHeap(), 0, fileData);
+        stream << "Memory allocation failed for reading file.\n";
+        CloseHandle(file);
         return false;
     }
 
-    auto *dosHeader      = static_cast<PIMAGE_DOS_HEADER>(fileData);
-    auto *imageNTHeaders = (PIMAGE_NT_HEADERS)((unsigned char *)fileData + dosHeader->e_lfanew);
+    DWORD bytesRead = 0;
+    if (!ReadFile(file, fileData, fileSize, &bytesRead, nullptr) || bytesRead != fileSize)
+    {
+        stream << "Read error: " << fileSize << " bytes expected, but got " << bytesRead << " bytes\n";
+        HeapFree(GetProcessHeap(), 0, fileData);
+        CloseHandle(file);
+        return false;
+    }
 
-    auto       *sectionLocation    = (PIMAGE_SECTION_HEADER)((unsigned char *)imageNTHeaders + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
-                                                    imageNTHeaders->FileHeader.SizeOfOptionalHeader);
+    auto       *dosHeader          = static_cast<PIMAGE_DOS_HEADER>(fileData);
+    auto       *imageNTHeaders     = reinterpret_cast<PIMAGE_NT_HEADERS>(static_cast<unsigned char *>(fileData) + dosHeader->e_lfanew);
+    auto       *sectionLocation    = reinterpret_cast<PIMAGE_SECTION_HEADER>(reinterpret_cast<unsigned char *>(imageNTHeaders) + sizeof(DWORD) +
+                                                                    sizeof(IMAGE_FILE_HEADER) + imageNTHeaders->FileHeader.SizeOfOptionalHeader);
     const DWORD importDirectoryRVA = imageNTHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress;
 
-    // get the last section, it's import section
     PIMAGE_SECTION_HEADER importSection = nullptr;
     for (int i = 0; i < imageNTHeaders->FileHeader.NumberOfSections; i++)
     {
@@ -64,132 +81,156 @@ bool getImportedDLLs(const QString &fileName, QStringList &res, QTextStream &str
         sectionLocation++;
     }
 
-    unsigned char *rawOffset = (unsigned char *)fileData + importSection->PointerToRawData;
-    auto          *importDescriptor =
-        (PIMAGE_IMPORT_DESCRIPTOR)(rawOffset + (imageNTHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress -
-                                                importSection->VirtualAddress));
+    if (importSection == nullptr)
+    {
+        stream << "No import section found.\n";
+        HeapFree(GetProcessHeap(), 0, fileData);
+        CloseHandle(file);
+        return false;
+    }
+
+    unsigned char *rawOffset        = static_cast<unsigned char *>(fileData) + importSection->PointerToRawData;
+    auto          *importDescriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(
+        rawOffset + (imageNTHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress - importSection->VirtualAddress));
 
     for (; importDescriptor->Name != 0; importDescriptor++)
     {
-        auto dll = QString((const char *)(rawOffset + (importDescriptor->Name - importSection->VirtualAddress)));
+        std::string dll(reinterpret_cast<const char *>(rawOffset + (importDescriptor->Name - importSection->VirtualAddress)));
         if (isInMinGWBin(dll))
         {
-            res.append(dll);
+            res.push_back(dll);
         }
     }
     HeapFree(GetProcessHeap(), 0, fileData);
+    CloseHandle(file);
     return true;
 }
 
-void getImportedDLLsRecursive(const QString &filename, QStringList &dlls, QTextStream &stream)
+void getImportedDLLsRecursive(const std::string &filename, std::vector<std::string> &dlls, std::ostream &stream)
 {
-    QStringList res;
+    std::vector<std::string> res;
     getImportedDLLs(filename, res, stream);
     for (const auto &dll : res)
     {
-        if (!dlls.contains(dll, Qt::CaseInsensitive))
+        auto exists =
+            std::any_of(dlls.begin(), dlls.end(), [&dll](const std::string &existingDll) { return caseInsensitiveCompare(dll, existingDll); });
+        if (!exists)
         {
-            dlls.append(dll);
+            dlls.push_back(dll);
             getImportedDLLsRecursive(expandMinGWBinPath(dll), dlls, stream);
         }
     }
 }
 
-bool isQt6(const QStringList &dlls)
+bool isQt6(const std::vector<std::string> &dlls)
 {
-    for (const auto &dll : dlls)
-    {
-        if (dll.compare("Qt6Core.dll", Qt::CaseInsensitive) == 0)
-        {
-            return true;
-        }
-    }
-    return false;
+    return std::any_of(dlls.begin(), dlls.end(), [](const std::string &dll) { return caseInsensitiveCompare(dll, "Qt6Core.dll"); });
 }
 
-QString windeployqtPath(bool qt6)
+bool isQt5(const std::vector<std::string> &dlls)
+{
+    return std::any_of(dlls.begin(), dlls.end(), [](const std::string &dll) { return caseInsensitiveCompare(dll, "Qt5Core.dll"); });
+}
+
+std::string windeployqtPath(bool qt6)
 {
     if (qt6)
     {
-        auto windeployqt6 = expandMinGWBinPath(QStringLiteral("windeployqt-qt6.exe"));
-        if (QFile::exists(windeployqt6))
+        auto windeployqt6 = expandMinGWBinPath("windeployqt-qt6.exe");
+        if (fs::exists(windeployqt6))
         {
             return windeployqt6;
         }
     }
-    return expandMinGWBinPath(QStringLiteral("windeployqt.exe"));
+    return expandMinGWBinPath("windeployqt.exe");
 }
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication   app(argc, argv);
-    QCommandLineParser parser;
-    parser.setApplicationDescription(QCoreApplication::translate("mingwdeployqt", "Command line client deploy MinGW built files"));
-    parser.addPositionalArgument(QCoreApplication::translate("mingwdeployqt", "[filename]"),
-                                 QCoreApplication::tr("File name of MinGW built exe/dll"));
-    parser.addHelpOption();
-    parser.addVersionOption();
+    po::options_description desc("Options");
+    desc.add_options()("help,h", "Display this help message")("version,v", "Display the version number")(
+        "mingw-directory,d",
+        po::value<std::string>(),
+        "Specify MinGW bin directory path. Leave blank to use the directory where the program is put.")(
+        "filename", po::value<std::vector<std::string>>(), "File name of MinGW built exe/dll");
 
-    QCommandLineOption mingwBinDir(QStringList() << QStringLiteral("d") << QStringLiteral("mingw-directory"),
-                                   QCoreApplication::translate("mingwdeployqt", "Specify MinGW bin directory path. Leave blank to use the directory where mingwdeployqt.exe put."),
-                                   QStringLiteral("directory-path"));
-    parser.addOption(mingwBinDir);
+    po::positional_options_description p;
+    p.add("filename", -1);
 
-    parser.process(app);
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+    po::notify(vm);
 
-    QTextStream stream(stdout);
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    stream.setCodec("UTF-8");
-#else
-    stream.setEncoding(QStringConverter::Utf8);
-#endif
-
-    if (parser.isSet(mingwBinDir))
+    if (vm.count("help"))
     {
-        mingwBinPath = parser.value(mingwBinDir);
+        std::cout << desc << "\n";
+        return 0;
+    }
+
+    if (vm.count("version"))
+    {
+        std::cout << "Version 1.0" << "\n";
+        return 0;
+    }
+
+    if (vm.count("mingw-directory"))
+    {
+        mingwBinPath = vm["mingw-directory"].as<std::string>();
     }
     else
     {
-        mingwBinPath = QCoreApplication::applicationDirPath();
+        // get current executable path, not the current working directory
+        fs::path currentPath = fs::path(argv[0]);
+        mingwBinPath = currentPath.lexically_normal().parent_path().string();
     }
-    stream << "Specified MinGW bin directory to " << QDir::toNativeSeparators(mingwBinPath) << "\n";
+    std::cout << "Specified MinGW bin directory to " << mingwBinPath << "\n";
 
-    auto args = parser.positionalArguments();
-    if (args.isEmpty())
+    if (!vm.count("filename"))
     {
-        parser.showHelp();
+        std::cout << "No files specified.\n";
         return 0;
     }
+
+    std::vector<std::string> args = vm["filename"].as<std::vector<std::string>>();
     for (const auto &arg : args)
     {
-        if (!QFile::exists(arg))
+        if (!fs::exists(arg))
         {
-            stream << arg << " doesn't exists.\n";
+            std::cout << arg << " doesn't exist.\n";
             continue;
         }
 
-        QStringList dlls;
-        getImportedDLLsRecursive(arg, dlls, stream);
-        stream << "Deploying dll:\n";
+        std::vector<std::string> dlls;
+        getImportedDLLsRecursive(arg, dlls, std::cout);
+        if (dlls.empty())
+        {
+            std::cout << "No dlls found in " << arg << ".\n";
+            continue;
+        }
+        std::cout << "Deploying dll:\n";
         for (const auto &dll : dlls)
         {
-            auto      src = QDir::toNativeSeparators(expandMinGWBinPath(dll));
-            QFileInfo fileInfo(arg);
-            QDir      dir = fileInfo.absoluteDir();
-            auto      dst = QDir::toNativeSeparators(dir.absoluteFilePath(dll));
-            if (::CopyFileW(src.toStdWString().c_str(), dst.toStdWString().c_str(), FALSE))
+            auto     src = fs::path(mingwBinPath) / dll;
+            fs::path dst = fs::path(arg).parent_path() / dll;
+            if (fs::copy_file(src, dst, fs::copy_options::overwrite_existing))
             {
-                stream << "\t" << dll << "\n";
+                std::cout << "\t" << dll << "\n";
             }
             else
             {
-                stream << "\t" << dll << " failed\n";
+                std::cout << "\t" << dll << " failed\n";
             }
         }
-        auto windeployqt = windeployqtPath(isQt6(dlls));
-        QProcess process;
-        process.start(windeployqt, QStringList() << arg);
-        process.waitForFinished();
+        bool bIsQt6 = isQt6(dlls);
+        bool bIsQt5 = isQt5(dlls);
+        if (bIsQt6 || bIsQt5)
+        {
+            auto windeployqt = windeployqtPath(bIsQt6);
+            // Execute the command using a system call or a similar method
+            std::string command = windeployqt + " " + arg;
+            std::cout << "Executing: " << command << "\n";
+            std::system(command.c_str());
+        }
     }
 
     return 0;
