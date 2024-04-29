@@ -53,5 +53,11 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
 
-install(TARGETS mingwdeployqt
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+if ($ENV{MSYSTEM} STREQUAL "")		
+	set(INSTALL_DIR ${CMAKE_INSTALL_BINDIR})	
+else()        			  
+	set(INSTALL_DIR "/$ENV{MSYSTEM}/bin")
+endif()
+
+install(TARGETS ${PROJECT_NAME}
+  RUNTIME DESTINATION ${INSTALL_DIR})
