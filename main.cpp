@@ -169,7 +169,8 @@ int main(int argc, char *argv[])
 
     if (vm.count("version"))
     {
-        std::cout << "Version 1.0" << "\n";
+        std::cout << "Version 1.0"
+                  << "\n";
         return 0;
     }
 
@@ -181,7 +182,7 @@ int main(int argc, char *argv[])
     {
         // get current executable path, not the current working directory
         fs::path currentPath = fs::path(argv[0]);
-        mingwBinPath = currentPath.lexically_normal().parent_path().string();
+        mingwBinPath         = currentPath.lexically_normal().parent_path().string();
     }
     std::cout << "Specified MinGW bin directory to " << mingwBinPath << "\n";
 
@@ -212,13 +213,20 @@ int main(int argc, char *argv[])
         {
             auto     src = fs::path(mingwBinPath) / dll;
             fs::path dst = fs::path(arg).parent_path() / dll;
-            if (fs::copy_file(src, dst, fs::copy_options::overwrite_existing))
+            try
             {
-                std::cout << "\t" << dll << "\n";
+                if (fs::copy_file(src, dst, fs::copy_options::update_existing))
+                {
+                    std::cout << "\t" << dll << "\n";
+                }
+                else
+                {
+                    std::cerr << "\t" << dll << " failed\n";
+                }
             }
-            else
+            catch (const fs::filesystem_error &e)
             {
-                std::cout << "\t" << dll << " failed\n";
+                std::cerr << "\t" << dll << " copying failed: " << e.what() << "\n";
             }
         }
         bool bIsQt6 = isQt6(dlls);
