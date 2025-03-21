@@ -26,21 +26,9 @@ jobs:
             toolchains: gcc
             c: gcc
             cxx: g++
-          - qt_arch: mingw32-gcc
-            mingw_arch: MINGW32
-            mingw_prefix: mingw-w64-i686
-            toolchains: gcc
-            c: gcc
-            cxx: g++
           - qt_arch: clang64-clang
             mingw_arch: CLANG64 
             mingw_prefix: mingw-w64-clang-x86_64
-            toolchains: clang
-            c: clang
-            cxx: clang++
-          - qt_arch: clang32-clang
-            mingw_arch: CLANG32
-            mingw_prefix: mingw-w64-clang-i686
             toolchains: clang
             c: clang
             cxx: clang++
