@@ -4,7 +4,7 @@ project(mingwdeployqt LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(Boost_NO_WARN_NEW_VERSIONS ON)
@@ -52,12 +52,6 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
-
-if ($ENV{MSYSTEM} STREQUAL "")		
-	set(INSTALL_DIR ${CMAKE_INSTALL_BINDIR})	
-else()        			  
-	set(INSTALL_DIR "/$ENV{MSYSTEM}/bin")
-endif()
 
 install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION ${INSTALL_DIR})

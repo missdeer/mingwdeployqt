@@ -208,6 +208,58 @@ int main(int argc, char *argv[])
             std::cout << "No dlls found in " << arg << ".\n";
             continue;
         }
+        bool bIsQt6 = isQt6(dlls);
+        bool bIsQt5 = isQt5(dlls);
+        if (bIsQt6 || bIsQt5)
+        {
+            auto windeployqt = windeployqtPath(bIsQt6);
+            // Execute the command using a system call or a similar method
+            std::string command = windeployqt + " " + arg;
+            std::cout << "Executing: " << command << "\n";
+            std::system(command.c_str());
+        }
+        // scan the directory for Qt files, and copy their dependencies to the target directory
+        // Qt5*.dll, Qt6*.dll
+        auto currentPath = fs::path(arg);
+        if (currentPath.is_relative())
+        {
+            currentPath = fs::current_path() / currentPath;
+        }
+        fs::path targetDir = currentPath.parent_path();
+        if (fs::exists(targetDir))
+        {
+            for (const auto &entry : fs::directory_iterator(targetDir))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".dll")
+                {
+                    std::vector<std::string> qtDlls;
+                    getImportedDLLsRecursive(entry.path().string(), qtDlls);
+                    std::copy(qtDlls.begin(), qtDlls.end(), std::back_inserter(dlls));
+                }
+            }
+        }
+        // imageformats/platforms/iconengines/tls/networkinformation/style/generic
+        std::vector<std::string> subdirs = {"imageformats", "platforms", "iconengines", "tls", "networkinformation", "style", "generic"};
+        for (const auto &subdir : subdirs)
+        {
+            fs::path subdirPath = targetDir / subdir;
+            if (fs::exists(subdirPath))
+            {
+                for (const auto &entry : fs::directory_iterator(subdirPath))
+                {
+                    if (entry.is_regular_file() && entry.path().extension() == ".dll")
+                    {
+                        std::vector<std::string> qtDlls;
+                        getImportedDLLsRecursive(entry.path().string(), qtDlls);
+                        std::copy(qtDlls.begin(), qtDlls.end(), std::back_inserter(dlls));
+                    }
+                }
+            }
+        }
+        // remove duplicates
+        std::sort(dlls.begin(), dlls.end());
+        dlls.erase(std::unique(dlls.begin(), dlls.end()), dlls.end());
+        // copy the dlls to the target directory
         std::cout << "Deploying dll:\n";
         for (const auto &dll : dlls)
         {
@@ -228,16 +280,6 @@ int main(int argc, char *argv[])
             {
                 std::cerr << "\t" << dll << " copying failed: " << e.what() << "\n";
             }
-        }
-        bool bIsQt6 = isQt6(dlls);
-        bool bIsQt5 = isQt5(dlls);
-        if (bIsQt6 || bIsQt5)
-        {
-            auto windeployqt = windeployqtPath(bIsQt6);
-            // Execute the command using a system call or a similar method
-            std::string command = windeployqt + " " + arg;
-            std::cout << "Executing: " << command << "\n";
-            std::system(command.c_str());
         }
     }
 
