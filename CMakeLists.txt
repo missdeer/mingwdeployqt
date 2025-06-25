@@ -11,11 +11,6 @@ set(Boost_NO_WARN_NEW_VERSIONS ON)
 cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED program_options)
 
-if(Boost_FOUND)
-     include_directories(${Boost_INCLUDE_DIRS})
-     link_directories(${Boost_LIBRARY_DIRS})
-endif(Boost_FOUND)
-
 # First check the command line variable VCPKG_TARGET_TRIPLET
 if(DEFINED VCPKG_TARGET_TRIPLET)
     set(TRIPLET ${VCPKG_TARGET_TRIPLET})
@@ -51,7 +46,7 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::headers Boost::program_options)
 
 install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION ${INSTALL_DIR})
