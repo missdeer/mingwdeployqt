@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(Boost_NO_WARN_NEW_VERSIONS ON)
-
+cmake_policy(SET CMP0167 NEW)
 find_package(Boost REQUIRED program_options)
 
 if(Boost_FOUND)
