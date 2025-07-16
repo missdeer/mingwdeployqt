@@ -25,6 +25,30 @@ std::string expandMinGWBinPath(const std::string &fileName)
     return mingwBinPath + "\\" + fileName;
 }
 
+std::string extractMinGWShareBinPath(bool bIsQt6)
+{
+    std::string mingwRootPath = mingwBinPath;
+    // remove the last \bin
+    int index = mingwRootPath.rfind("\\bin");
+    if (index != std::string::npos)
+    {
+        mingwRootPath = mingwRootPath.substr(0, index);
+    }
+    else
+    {
+        index = mingwRootPath.rfind("/bin");
+        if (index != std::string::npos)
+        {
+            mingwRootPath = mingwRootPath.substr(0, index);
+        }
+    }
+    if (bIsQt6)
+    {
+        return mingwRootPath + R"(\share\qt6\bin)";
+    }
+    return mingwRootPath + R"(\share\qt5\bin)";
+}
+
 bool isInMinGWBin(const std::string &fileName)
 {
     fs::path filePath = expandMinGWBinPath(fileName);
@@ -213,6 +237,11 @@ int main(int argc, char *argv[])
         if (bIsQt6 || bIsQt5)
         {
             auto windeployqt = windeployqtPath(bIsQt6);
+            auto shareBinPath = extractMinGWShareBinPath(bIsQt6);
+            // add shareBinPath to PATH environment variable
+            std::string path = getenv("PATH");
+            path = path + ";" + shareBinPath;
+            _putenv(("PATH=" + path).c_str());
             // Execute the command using a system call or a similar method
             std::string command = windeployqt + " " + arg;
             std::cout << "Executing: " << command << "\n";
