@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -240,7 +241,7 @@ int main(int argc, char *argv[])
             auto shareBinPath = extractMinGWShareBinPath(bIsQt6);
             // add shareBinPath to PATH environment variable
             std::string path = getenv("PATH");
-            path             = path + ";" + shareBinPath;
+            path.append(";" + shareBinPath);
             _putenv(("PATH=" + path).c_str());
             // Execute the command using a system call or a similar method
             std::string command = windeployqt + " " + arg;
@@ -267,21 +268,31 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        // imageformats/platforms/iconengines/tls/networkinformation/styles/generic/platforminputcontexts/sqldrivers
-        std::vector<std::string> subdirs = {
-            "imageformats", "platforms", "iconengines", "tls", "networkinformation", "styles", "generic", "platforminputcontexts", "sqldrivers"};
-        for (const auto &subdir : subdirs)
+        if (bIsQt6 || bIsQt5)
         {
-            fs::path subdirPath = targetDir / subdir;
-            if (fs::exists(subdirPath))
+            // create qt.conf if not exists
+            fs::path qtConfPath = targetDir / "qt.conf";
+            if (!fs::exists(qtConfPath))
             {
-                for (const auto &entry : fs::directory_iterator(subdirPath))
+                std::ofstream qtConfFile(qtConfPath);
+                qtConfFile << "[Paths]\nPrefix=.\nQmlImports=qml\n";
+            }
+            // imageformats/platforms/iconengines/tls/networkinformation/styles/generic/platforminputcontexts/sqldrivers
+            std::vector<std::string> subdirs = {
+                "imageformats", "platforms", "iconengines", "tls", "networkinformation", "styles", "generic", "platforminputcontexts", "sqldrivers"};
+            for (const auto &subdir : subdirs)
+            {
+                fs::path subdirPath = targetDir / subdir;
+                if (fs::exists(subdirPath))
                 {
-                    if (entry.is_regular_file() && entry.path().extension() == ".dll")
+                    for (const auto &entry : fs::directory_iterator(subdirPath))
                     {
-                        std::vector<std::string> qtDlls;
-                        getImportedDLLsRecursive(entry.path().string(), qtDlls);
-                        std::copy(qtDlls.begin(), qtDlls.end(), std::back_inserter(dlls));
+                        if (entry.is_regular_file() && entry.path().extension() == ".dll")
+                        {
+                            std::vector<std::string> qtDlls;
+                            getImportedDLLsRecursive(entry.path().string(), qtDlls);
+                            std::copy(qtDlls.begin(), qtDlls.end(), std::back_inserter(dlls));
+                        }
                     }
                 }
             }
