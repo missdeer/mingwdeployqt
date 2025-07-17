@@ -240,7 +240,13 @@ int main(int argc, char *argv[])
             auto windeployqt  = windeployqtPath(bIsQt6);
             auto shareBinPath = extractMinGWShareBinPath(bIsQt6);
             // add shareBinPath to PATH environment variable
-            std::string path = getenv("PATH");
+            DWORD size = GetEnvironmentVariableA("PATH", nullptr, 0);
+            std::string path;
+            if (size > 0) {
+                std::vector<char> buffer(size);
+                GetEnvironmentVariableA("PATH", buffer.data(), size);
+                path = buffer.data();
+            }
             path.append(";" + shareBinPath);
             _putenv(("PATH=" + path).c_str());
             // Execute the command using a system call or a similar method
