@@ -267,8 +267,9 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        // imageformats/platforms/iconengines/tls/networkinformation/style/generic
-        std::vector<std::string> subdirs = {"imageformats", "platforms", "iconengines", "tls", "networkinformation", "style", "generic"};
+        // imageformats/platforms/iconengines/tls/networkinformation/styles/generic/platforminputcontexts/sqldrivers
+        std::vector<std::string> subdirs = {
+            "imageformats", "platforms", "iconengines", "tls", "networkinformation", "styles", "generic", "platforminputcontexts", "sqldrivers"};
         for (const auto &subdir : subdirs)
         {
             fs::path subdirPath = targetDir / subdir;
