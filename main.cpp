@@ -173,18 +173,35 @@ std::string windeployqtPath(bool qt6)
 int main(int argc, char *argv[])
 {
     po::options_description desc("Options");
-    desc.add_options()("help,h", "Display this help message")("version,v", "Display the version number")(
-        "mingw-directory,d",
-        po::value<std::string>(),
-        "Specify MinGW bin directory path. Leave blank to use the directory where the program is put.")(
-        "filename", po::value<std::vector<std::string>>(), "File name of MinGW built exe/dll");
+    desc.add_options()
+        ("help,h", "Display this help message")
+        ("version,v", "Display the version number")
+        ("mingw-directory,d", po::value<std::string>(), "Specify MinGW bin directory path. Leave blank to use the directory where the program is put.")
+        ("qmldir", po::value<std::string>(), "Specify QML directory path to pass to windeployqt. Can be empty.")
+        ("filename", po::value<std::vector<std::string>>(), "File name of MinGW built exe/dll");
 
     po::positional_options_description p;
     p.add("filename", -1);
 
+    // Debug: Print command line arguments
+    std::cout << "Command line arguments:" << std::endl;
+    for (int i = 0; i < argc; ++i) {
+        std::cout << "  [" << i << "] " << argv[i] << std::endl;
+    }
+    
     po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
-    po::notify(vm);
+    try {
+        po::store(po::command_line_parser(argc, argv).options(desc).positional(p).run(), vm);
+        po::notify(vm);
+    } catch (const po::unknown_option& e) {
+        std::cerr << "Unknown option: " << e.what() << std::endl;
+        std::cout << desc << "\n";
+        return 1;
+    } catch (const po::error& e) {
+        std::cerr << "Error parsing command line: " << e.what() << std::endl;
+        std::cout << desc << "\n";
+        return 1;
+    }
 
     if (vm.count("help"))
     {
@@ -251,6 +268,18 @@ int main(int argc, char *argv[])
             _putenv(("PATH=" + path).c_str());
             // Execute the command using a system call or a similar method
             std::string command = windeployqt + " " + arg;
+            
+            // Add qmldir option if specified
+            if (vm.count("qmldir"))
+            {
+                std::string qmldir = vm["qmldir"].as<std::string>();
+                std::cout << "qmldir value: '" << qmldir << "'" << std::endl;
+                if (!qmldir.empty())
+                {
+                    command += " -qmldir=\"" + qmldir + "\"";
+                }
+            }
+            
             std::cout << "Executing: " << command << "\n";
             std::system(command.c_str());
         }
